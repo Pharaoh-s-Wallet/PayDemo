@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TahiPay - Product Purchase</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.6.0/dist/web3.min.js"></script>
+    <script src="https://unpkg.com/ethers@5.4.0/dist/ethers.umd.min.js" type="application/javascript"></script>
+    <style>
+        .container-fluid {
+            padding: 20px;
+        }
+        .product-section {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .product-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .product-details {
+            margin-bottom: 20px;
+        }
+        .payment-section {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .btn-connect {
+            background-color: #3498db;
+            color: white;
+        }
+        .btn-send {
+            background-color: #2ecc71;
+            color: white;
+        }
+        .status-message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .status-success {
+            background-color: #d5f5e3;
+            color: #2ecc71;
+        }
+        .status-error {
+            background-color: #f8d7da;
+            color: #dc3545;
+        }
+        .status-info {
+            background-color: #d6eaf8;
+            color: #3498db;
+        }
+        .token-logo {
+            width: 24px;
+            height: 24px;
+            margin-right: 8px;
+        }
+        .countdown-timer {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 1.1em;
+        }
+        
+        #countdown {
+            font-weight: bold;
+            color: #2ecc71;
+        }
+        
+        #countdown.warning {
+            color: #f39c12;
+        }
+        
+        #countdown.danger {
+            color: #e74c3c;
+        }
+        .payment-button-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;  /* 按钮和图片之间的间距 */
+        }
+        
+        .payment-icon {
+            width: 186px;
+            height: 186px;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Left Side - Product Display -->
+            <div class="col-md-6 product-section">
+                <h2 class="mb-4">AirPods (4th generation)</h2>
+                <div class="product-details">
+                    <img src="https://www.apple.com/v/airpods-4/d/images/overview/bento-gallery/bento_case_open__63kccmu775u6_xlarge_2x.jpg" 
+                         alt="AirPods 4" 
+                         class="product-image">
+                    <h3>AirPods with Charging Case</h3>
+                    <p class="lead">Price: 100 NZDD</p>
+                    <div class="description">
+                        <h4>Description</h4>
+                        <p>The all-new AirPods (4th generation) deliver an exceptional wireless experience with:</p>
+                        <ul>
+                            <li>Up to 6 hours of listening time with a single charge</li>
+                            <li>Active Noise Cancellation for immersive sound</li>
+                            <li>Adaptive Audio that automatically adjusts noise control</li>
+                            <li>Personalized Spatial Audio with dynamic head tracking</li>
+                        </ul>
+                    </div>
+                    <div class="specifications">
+                        <h4>Technical Specifications</h4>
+                        <ul>
+                            <li>H2 chip for advanced audio processing</li>
+                            <li>USB-C charging case</li>
+                            <li>IPX4 water and sweat resistant</li>
+                            <li>Bluetooth 5.3 connectivity</li>
+                            <li>Compatible with iPhone, iPad, and Mac</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side - Payment Interface -->
+            <div class="col-md-6 payment-section">
+                <h2 class="text-center mb-4">TahiPay Payment</h2>
+                <p class="lead text-center">Make gasless token payments using EIP-2612 permit signatures</p>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Connect Your Wallet</h5>
+                    </div>
+                    <div class="card-body">
+                        <p id="wallet-status">Not connected</p>
+                        <button id="connect-wallet" class="btn btn-connect">Connect with MetaMask</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Pay</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="payment-form">
+                            <div class="mb-3">
+                                <label for="token-select" class="form-label">Select Token</label>
+                                <select class="form-select" id="token-select" required>
+                                    <option value="">Choose a token...</option>
+                                    <option value="0x6B175474E89094C44Da98b954EedeAC495271d0F">NZDD - Stablecoin</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="token-balance" class="form-label">Your Balance</label>
+                                <div id="token-balance" class="form-control bg-light">Connect wallet to see balance</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="vendor-address" class="form-label">Vendor Wallet Address</label>
+                                <input type="text" class="form-control" id="vendor-address"  value="0xf65E074bb856115A39BaB7c9297ca2E59059ABc3" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label for="recipient-address" class="form-label">GST Wallet Address</label>
+                                <input type="text" class="form-control" id="recipient-address"  value="0x6F178D61B1098cDe5f2cd8fa5fD98F9B1fc1719c" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label for="amount" class="form-label">Amount</label>
+                                <input type="text" class="form-control" id="amount" placeholder="100.0" value="100.0" readonly >
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="collect-fee" checked>
+                                <label class="form-check-label" for="collect-fee">
+                                    Contains GST 15%
+                                </label>
+                            </div>
+                            <div class="payment-button-container">
+                                <button type="submit" class="btn btn-send" id="send-payment"> &nbsp;&nbsp;&nbsp;&nbsp;     Pay &nbsp;&nbsp;&nbsp;&nbsp;    </button>
+                                <img src="/static/order_789-1212773.png" alt="Payment Icon" class="payment-icon">
+                            </div>
+                        </form>
+                        <div class="countdown-timer mt-3 text-center">
+                            <p class="mb-0">Payment session expires in: <span id="countdown">30:00</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="status-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Web3 and wallet connection
+        let web3;
+        let userAccount;
+        let chainId;
+        
+        // API base path
+        const API_BASE = '/api';
+        
+        // Token data
+        let supportedTokens = {};
+        
+        // DOM elements
+        const connectWalletBtn = document.getElementById('connect-wallet');
+        const walletStatus = document.getElementById('wallet-status');
+        const paymentForm = document.getElementById('payment-form');
+        const tokenSelect = document.getElementById('token-select');
+        const tokenBalance = document.getElementById('token-balance');
+        const recipientAddressInput = document.getElementById('recipient-address');
+        const amountInput = document.getElementById('amount');
+        const collectFeeCheckbox = document.getElementById('collect-fee');
+        const sendPaymentBtn = document.getElementById('send-payment');
+        const statusContainer = document.getElementById('status-container');
+
+        // ERC20 ABI with permit function (for frontend interactions)
+        const ERC20_ABI = [
+            // Get token details
+            "function name() view returns (string)",
+            "function symbol() view returns (string)",
+            "function decimals() view returns (uint8)",
+            "function balanceOf(address) view returns (uint256)",
+            // Nonce for permit
+            "function nonces(address) view returns (uint256)",
+            // Domain separator for EIP-712
+            "function DOMAIN_SEPARATOR() view returns (bytes32)"
+        ];
+
+        // Initialize app
+        async function initApp() {
+            // Load supported tokens
+            await loadSupportedTokens();
+            
+            // Check if MetaMask is already connected
+            if (window.ethereum) {
+                window.ethereum.on('accountsChanged', handleAccountsChanged);
+                window.ethereum.on('chainChanged', () => window.location.reload());
+                
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                if (accounts.length > 0) {
+                    await connectWallet();
+                }
+            }
+        }
+        
+        // Load supported tokens from API
+        async function loadSupportedTokens() {
+            try {
+                const response = await fetch(`${API_BASE}/supported-tokens`);
+                supportedTokens = await response.json();
+                
+                // Clear token select
+                tokenSelect.innerHTML = '<option value="">Choose a token...</option>';
+                
+                // Add tokens to select
+                Object.entries(supportedTokens).forEach(([address, tokenInfo]) => {
+                    if (tokenInfo.supports_permit) {
+                        const option = document.createElement('option');
+                        option.value = address;
+                        option.textContent = `${tokenInfo.symbol} - ${tokenInfo.name}`;
+                        tokenSelect.appendChild(option);
+                    }
+                });
+            } catch (error) {
+                showStatus(`Error loading tokens: ${error.message}`, 'error');
+            }
+        }
+
+        // Connect wallet function
+        async function connectWallet() {
+            if (window.ethereum) {
+                try {
+                    // Request account access
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    handleAccountsChanged(accounts);
+                } catch (error) {
+                    showStatus(`Connection error: ${error.message}`, 'error');
+                }
+            } else {
+                showStatus('MetaMask not found. Please install MetaMask extension.', 'error');
+            }
+        }
+        
+        // Handle accounts changed
+        async function handleAccountsChanged(accounts) {
+            if (accounts.length === 0) {
+                // MetaMask is locked or user has no accounts
+                walletStatus.innerHTML = 'Not connected';
+                connectWalletBtn.innerHTML = 'Connect with MetaMask';
+                tokenBalance.textContent = 'Connect wallet to see balance';
+                userAccount = null;
+            } else {
+                // Initialize web3
+                web3 = new Web3(window.ethereum);
+                userAccount = accounts[0];
+                
+                // Get network
+                chainId = await web3.eth.getChainId();
+                
+                // Update UI
+                walletStatus.innerHTML = `Connected: ${userAccount.substring(0, 6)}...${userAccount.substring(38)} (Chain ID: ${chainId})`;
+                connectWalletBtn.innerHTML = 'Connected';
+                
+                // Update token balance if a token is selected
+                if (tokenSelect.value) {
+                    await updateTokenBalance(tokenSelect.value);
+                }
+                
+                showStatus('Wallet connected successfully!', 'success');
+            }
+        }
+        
+        // Update token balance
+        async function updateTokenBalance(tokenAddress) {
+            if (!userAccount) return;
+            
+            try {
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
+                
+                // Get token details
+                const decimals = await tokenContract.decimals();
+                const symbol = await tokenContract.symbol();
+                
+                // Get balance
+                const balance = await tokenContract.balanceOf(userAccount);
+                const formattedBalance = ethers.utils.formatUnits(balance, decimals);
+                
+                // Update UI
+                tokenBalance.innerHTML = `${formattedBalance} ${symbol}`;
+            } catch (error) {
+                tokenBalance.innerHTML = `Error fetching balance: ${error.message}`;
+            }
+        }
+
+        // Sign permit function
+        async function signPermit(tokenAddress, ownerAddress, spenderAddress, value, deadline, nonce) {
+            try {
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
+                
+                // Get token details
+                const name = await tokenContract.name();
+                const domainSeparator = await tokenContract.DOMAIN_SEPARATOR();
+                
+                // Create the permit data
+                const domain = {
+                    name: name,
+                    version: '1',
+                    chainId: chainId,
+                    verifyingContract: tokenAddress
+                };
+                
+                const types = {
+                    Permit: [
+                        { name: 'owner', type: 'address' },
+                        { name: 'spender', type: 'address' },
+                        { name: 'value', type: 'uint256' },
+                        { name: 'nonce', type: 'uint256' },
+                        { name: 'deadline', type: 'uint256' }
+                    ]
+                };
+                
+                const message = {
+                    owner: ownerAddress,
+                    spender: spenderAddress,
+                    value: value,
+                    nonce: nonce,
+                    deadline: deadline
+                };
+                
+                // Sign the message
+                const signer = provider.getSigner();
+                const signature = await signer._signTypedData(domain, types, message);
+                
+                // Split the signature
+                const sig = ethers.utils.splitSignature(signature);
+                
+                return {
+                    v: sig.v,
+                    r: sig.r,
+                    s: sig.s,
+                    deadline: deadline
+                };
+            } catch (error) {
+                showStatus(`Error signing permit: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        // Get current nonce for permit
+        async function getNonce(tokenAddress, walletAddress) {
+            try {
+                const response = await fetch(`${API_BASE}/get-nonce/${tokenAddress}/${walletAddress}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    return data.nonce;
+                } else {
+                    throw new Error(data.error || 'Unknown error fetching nonce');
+                }
+            } catch (error) {
+                showStatus(`Error getting nonce: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        // Submit transaction to the relayer
+        async function submitTransaction(tokenAddress, senderAddress, recipientAddress, amount, collectFee, signature) {
+            try {
+                showStatus('Submitting transaction to relayer...', 'info');
+                
+                const response = await fetch(`${API_BASE}/submit-transaction`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        token_address: tokenAddress,
+                        sender: senderAddress,
+                        recipient: recipientAddress,
+                        amount: amount,
+                        deadline: signature.deadline,
+                        collect_fee: collectFee,
+                        signature: {
+                            v: signature.v,
+                            r: signature.r,
+                            s: signature.s
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showStatus(`Transaction submitted successfully! TX: ${data.tx_hash}`, 'success');
+                    
+                    // Add transaction explorer link
+                    let explorerUrl;
+                    if (chainId === 1) {
+                        explorerUrl = `https://etherscan.io/tx/${data.tx_hash}`;
+                    } else if (chainId === 5) {
+                        explorerUrl = `https://goerli.etherscan.io/tx/${data.tx_hash}`;
+                    } else if (chainId === 137) {
+                        explorerUrl = `https://polygonscan.com/tx/${data.tx_hash}`;
+                    } else if (chainId === 80001) {
+                        explorerUrl = `https://mumbai.polygonscan.com/tx/${data.tx_hash}`;
+                    }
+                    
+                    if (explorerUrl) {
+                        showStatus(`Track your transaction: <a href="${explorerUrl}" target="_blank">${explorerUrl}</a>`, 'info');
+                    }
+                    
+                    // Update token balance after transaction
+                    setTimeout(() => updateTokenBalance(tokenAddress), 5000);
+                } else {
+                    showStatus(`Transaction failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`Error submitting transaction: ${error.message}`, 'error');
+            }
+        }
+
+        // Helper to show status messages
+        function showStatus(message, type) {
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status-message status-${type}`;
+            statusDiv.innerHTML = message;
+            
+            statusContainer.prepend(statusDiv);
+            
+            // Remove after 10 seconds
+            setTimeout(() => {
+                statusDiv.remove();
+            }, 100000);
+        }
+
+        // Token select change handler
+        tokenSelect.addEventListener('change', async function() {
+            if (this.value && userAccount) {
+                await updateTokenBalance(this.value);
+            } else {
+                tokenBalance.textContent = 'Select a token and connect wallet';
+            }
+        });
+
+        // Event listeners
+        connectWalletBtn.addEventListener('click', connectWallet);
+        
+        paymentForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            if (!userAccount) {
+                showStatus('Please connect your wallet first.', 'error');
+                return;
+            }
+            
+            const tokenAddress = tokenSelect.value;
+            const recipientAddress = recipientAddressInput.value;
+            const amount = amountInput.value;
+            const collectFee = collectFeeCheckbox.checked;
+            
+            if (!tokenAddress) {
+                showStatus('Please select a token', 'error');
+                return;
+            }
+            
+            try {
+                // Validate inputs
+                if (!web3.utils.isAddress(recipientAddress)) {
+                    showStatus('Invalid recipient address', 'error');
+                    return;
+                }
+                
+                // Initialize token contract
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
+                
+                // Get token decimals
+                const decimals = await tokenContract.decimals();
+                
+                // Convert amount to token units
+                const amountInWei = ethers.utils.parseUnits(amount, decimals);
+                
+                // Check user balance
+                const balance = await tokenContract.balanceOf(userAccount);
+                if (balance.lt(amountInWei)) {
+                    showStatus(`Insufficient balance. You have ${ethers.utils.formatUnits(balance, decimals)} tokens.`, 'error');
+                    return;
+                }
+                
+                // Get current nonce for permit
+                const nonce = await getNonce(tokenAddress, userAccount);
+                
+                // Set deadline to 1 hour from now
+                const deadline = Math.floor(Date.now() / 1000) + 3600;
+                
+                // Get the relayer contract address from the backend
+                const healthResponse = await fetch(`${API_BASE}/health`);
+                const healthData = await healthResponse.json();
+                
+                if (!healthData.relayer_contract) {
+                    showStatus('Relayer contract address not configured on the backend', 'error');
+                    return;
+                }
+                
+                // Sign the permit
+                showStatus('Please sign the permit message in MetaMask...', 'info');
+                const signature = await signPermit(
+                    tokenAddress,
+                    userAccount,
+                    healthData.relayer_contract, // Use the relayer contract as the spender
+                    amountInWei.toString(),
+                    deadline,
+                    nonce
+                );
+                
+                // Submit the transaction to the relayer
+                await submitTransaction(
+                    tokenAddress,
+                    userAccount,
+                    recipientAddress,
+                    amountInWei.toString(),
+                    collectFee,
+                    signature
+                );
+                
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+            }
+        });
+
+        // Add this event listener
+        collectFeeCheckbox.addEventListener('change', function() {
+            console.log("Fee collection set to:", this.checked);
+        });
+
+        // Countdown Timer functionality
+        function startCountdown() {
+            let timeLeft = 30 * 60; // 30 minutes in seconds
+            const countdownElement = document.getElementById('countdown');
+            
+            function updateCountdown() {
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                
+                // Format the time as MM:SS
+                countdownElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                // Add warning colors
+                if (timeLeft <= 300) { // Last 5 minutes
+                    countdownElement.className = 'danger';
+                    if (timeLeft === 300) { // Show warning at 5 minutes
+                        showStatus('Only 5 minutes remaining!', 'error');
+                    }
+                } else if (timeLeft <= 600) { // Last 10 minutes
+                    countdownElement.className = 'warning';
+                }
+                
+                // Check if countdown is finished
+                if (timeLeft === 0) {
+                    clearInterval(countdownInterval);
+                    countdownElement.textContent = 'EXPIRED';
+                    
+                    // Disable the form
+                    const form = document.getElementById('payment-form');
+                    form.querySelectorAll('input, select, button').forEach(element => {
+                        element.disabled = true;
+                    });
+                    
+                    showStatus('Payment session expired. Please refresh the page to start a new session.', 'error');
+                    return;
+                }
+                
+                timeLeft--;
+            }
+            
+            // Update immediately and then every second
+            updateCountdown();
+            const countdownInterval = setInterval(updateCountdown, 1000);
+            
+            // Store the interval ID in case we need to clear it later
+            window.countdownInterval = countdownInterval;
+        }
+
+        // Start the countdown when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initApp();
+            startCountdown();
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 
