@@ -34,7 +34,7 @@ TahiPay is a subsidized payment system that allows users to send ERC20 tokens wi
 
 Only ERC20 tokens that implement the EIP-2612 permit standard can be used with this system. Common examples include:
 - NNZDD_CONTRACT_ADDR: NNZDD token (deploy by team) , contract address : 0x5853D7933c8bf29Deb2b16aDb1d100c7ca0060CA
-- RELAYER_PRIVATE_KEY :  your_private_key default is your RELAYER_CONTRACT deploy address,our
+- RELAYER_PRIVATE_KEY :  your_private_key , default is your RELAYER_CONTRACT deploy address
 - CHAIN_ID = 84532
 - RELAYER_CONTRACT_ADDRESS :  Deploy Relayer Contract Address 0x715D5476ecB89f1E97AC50cd35d0058424D4e7b6
 
